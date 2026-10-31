@@ -1,0 +1,1523 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102b27">
+  <title>INCI Lens | Ingredient Intelligence</title>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <style>
+    :root {
+      --ink:#172b28;
+      --muted:#687b76;
+      --paper:#f4f7f3;
+      --card:#fff;
+      --green:#1d6a55;
+      --green-dark:#124b3c;
+      --mint:#e6f1e9;
+      --line:#e3eae4;
+      --gold:#b27a24;
+      --red:#a84343;
+      --shadow:0 14px 38px rgba(22,53,43,.08);
+      --radius:22px;
+    }
+
+    * { box-sizing:border-box; }
+
+    body {
+      margin:0;
+      background:radial-gradient(circle at 90% 0%,#e5efe7 0,transparent 32%),var(--paper);
+      color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      line-height:1.5;
+    }
+
+    button,input,textarea { font:inherit; }
+
+    .shell {
+      width:min(1080px,100% - 36px);
+      margin:0 auto;
+      padding:26px 0 54px;
+    }
+
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:10px 2px 28px;
+    }
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:11px;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+
+    .brand-mark {
+      width:40px;
+      height:40px;
+      border-radius:14px;
+      background:var(--green-dark);
+      color:#fff;
+      display:grid;
+      place-items:center;
+      font-size:20px;
+      box-shadow:0 7px 18px #124b3c30;
+    }
+
+    .top-pill {
+      font-size:12px;
+      color:var(--green-dark);
+      background:#e6f1e9;
+      border:1px solid #d6e7da;
+      padding:7px 12px;
+      border-radius:999px;
+      font-weight:700;
+    }
+
+    .hero {
+      display:grid;
+      grid-template-columns:1.25fr .75fr;
+      gap:24px;
+      align-items:center;
+      padding:34px;
+      border-radius:30px;
+      background:linear-gradient(125deg,#123e34,#1e6652);
+      color:white;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .hero:after {
+      content:"";
+      position:absolute;
+      width:300px;
+      height:300px;
+      border:1px solid #ffffff20;
+      border-radius:50%;
+      right:-95px;
+      top:-125px;
+      box-shadow:0 0 0 35px #ffffff09,0 0 0 70px #ffffff07;
+    }
+
+    .eyebrow {
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:11px;
+      font-weight:800;
+      color:#c2ddcc;
+    }
+
+    h1 {
+      font-size:clamp(30px,5vw,48px);
+      line-height:1.05;
+      letter-spacing:-.04em;
+      margin:12px 0;
+    }
+
+    .hero p {
+      color:#d7e8dd;
+      max-width:600px;
+      margin:0;
+      font-size:15px;
+    }
+
+    .hero-art {
+      justify-self:center;
+      position:relative;
+      z-index:1;
+      width:160px;
+      height:160px;
+      border:1px solid #ffffff35;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:#ffffff0b;
+    }
+
+    .hero-art span {
+      font-size:72px;
+      filter:drop-shadow(0 12px 10px #071f1940);
+    }
+
+    .steps {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      margin:18px 0 24px;
+    }
+
+    .step {
+      padding:15px 17px;
+      border:1px solid var(--line);
+      border-radius:17px;
+      background:#ffffffb8;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .step b {
+      width:28px;
+      height:28px;
+      border-radius:10px;
+      display:grid;
+      place-items:center;
+      background:var(--mint);
+      color:var(--green-dark);
+      flex:none;
+    }
+
+    .layout {
+      display:grid;
+      grid-template-columns:.92fr 1.08fr;
+      gap:20px;
+      align-items:start;
+    }
+
+    .column {
+      display:grid;
+      gap:20px;
+    }
+
+    .panel {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:23px;
+      box-shadow:var(--shadow);
+      min-width:0;
+    }
+
+    .panel-head {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:15px;
+    }
+
+    .panel h2 {
+      font-size:18px;
+      letter-spacing:-.02em;
+      margin:0;
+    }
+
+    .panel-sub {
+      font-size:13px;
+      color:var(--muted);
+      margin:5px 0 0;
+    }
+
+    .number {
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      color:var(--green);
+      background:var(--mint);
+      border-radius:9px;
+      padding:6px 9px;
+      white-space:nowrap;
+    }
+
+    .dropzone {
+      border:1.5px dashed #bfd2c5;
+      background:#f8fbf8;
+      border-radius:16px;
+      padding:19px;
+      text-align:center;
+    }
+
+    .drop-icon {
+      font-size:27px;
+      margin-bottom:5px;
+    }
+
+    .file-label {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      background:var(--green);
+      color:#fff;
+      padding:11px 16px;
+      border-radius:12px;
+      font-size:13px;
+      font-weight:750;
+      cursor:pointer;
+      margin-top:9px;
+    }
+
+    input[type=file] {
+      position:absolute;
+      width:1px;
+      height:1px;
+      opacity:0;
+      overflow:hidden;
+    }
+
+    .status {
+      font-size:12px;
+      color:var(--muted);
+      margin:12px 0 0;
+      overflow-wrap:anywhere;
+    }
+
+    .status.ok {
+      color:var(--green-dark);
+      font-weight:700;
+    }
+
+    .status.error { color:var(--red); }
+
+    .sheet-chips {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:12px;
+    }
+
+    .chip {
+      font-size:11px;
+      background:#f0f4f0;
+      border:1px solid var(--line);
+      color:#52645e;
+      border-radius:999px;
+      padding:5px 9px;
+    }
+
+    .camera-frame {
+      background:#10201d;
+      border-radius:17px;
+      overflow:hidden;
+      position:relative;
+      aspect-ratio:4/3;
+      display:grid;
+      place-items:center;
+    }
+
+    video {
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    video[hidden] { display:none; }
+
+    .camera-placeholder {
+      color:#d6e5dc;
+      text-align:center;
+      padding:20px;
+      font-size:13px;
+    }
+
+    .camera-placeholder span {
+      display:block;
+      font-size:38px;
+      margin-bottom:8px;
+    }
+
+    .camera-controls {
+      display:flex;
+      gap:9px;
+      flex-wrap:wrap;
+      margin-top:13px;
+    }
+
+    .btn {
+      border:0;
+      border-radius:12px;
+      padding:12px 15px;
+      font-size:13px;
+      font-weight:750;
+      cursor:pointer;
+      transition:transform .15s,background .15s;
+      min-height:44px;
+    }
+
+    .btn:active { transform:scale(.98); }
+
+    .btn-primary {
+      background:var(--green);
+      color:#fff;
+    }
+
+    .btn-primary:hover { background:var(--green-dark); }
+
+    .btn-secondary {
+      background:#edf3ee;
+      color:var(--green-dark);
+      border:1px solid #dce8de;
+    }
+
+    .btn-quiet {
+      background:transparent;
+      color:var(--muted);
+      border:1px solid var(--line);
+    }
+
+    .btn:disabled {
+      opacity:.45;
+      cursor:not-allowed;
+    }
+
+    textarea {
+      width:100%;
+      min-height:140px;
+      resize:vertical;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      background:#fbfcfb;
+      color:var(--ink);
+      outline:none;
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    textarea:focus,input:focus {
+      border-color:#8bb8a0;
+      box-shadow:0 0 0 3px #dcefe2;
+    }
+
+    .action-row {
+      display:flex;
+      gap:9px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .results-empty {
+      border:1px dashed #d7e2d9;
+      background:#f9fbf9;
+      border-radius:16px;
+      padding:28px 18px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .results-empty span {
+      font-size:34px;
+      display:block;
+      margin-bottom:8px;
+    }
+
+    .result-summary {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 15px;
+      background:#eff5f0;
+      border-radius:14px;
+      margin-bottom:13px;
+    }
+
+    .result-summary strong { font-size:14px; }
+
+    .result-summary small {
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-top:2px;
+    }
+
+    .count {
+      font-size:21px;
+      font-weight:850;
+      color:var(--green-dark);
+    }
+
+    .ingredient-card {
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      margin:11px 0;
+      background:#fff;
+    }
+
+    .ingredient-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+    }
+
+    .ingredient-card h3 {
+      font-size:15px;
+      margin:0 0 3px;
+      letter-spacing:-.01em;
+    }
+
+    .matched {
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    .risk {
+      font-size:10px;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      font-weight:850;
+      border-radius:999px;
+      padding:6px 9px;
+      white-space:nowrap;
+    }
+
+    .risk-red {
+      background:#fbe9e7;
+      color:#9b3c35;
+    }
+
+    .risk-amber {
+      background:#fff2d9;
+      color:#8b601b;
+    }
+
+    .risk-green {
+      background:#e5f3e8;
+      color:#286847;
+    }
+
+    .risk-neutral {
+      background:#edf0ed;
+      color:#59645e;
+    }
+
+    .detail-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:13px;
+    }
+
+    .detail {
+      background:#f7f9f7;
+      border-radius:10px;
+      padding:10px;
+      min-width:0;
+    }
+
+    .detail b {
+      display:block;
+      color:#6b7c74;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.07em;
+      margin-bottom:3px;
+    }
+
+    .detail span {
+      display:block;
+      font-size:12px;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+    }
+
+    details.more {
+      margin-top:12px;
+      border-top:1px solid var(--line);
+      padding-top:10px;
+    }
+
+    details.more summary {
+      cursor:pointer;
+      font-size:12px;
+      font-weight:750;
+      color:var(--green-dark);
+    }
+
+    .sheet-info {
+      font-size:11px;
+      color:var(--muted);
+      margin-top:9px;
+    }
+
+    .notice {
+      padding:13px 15px;
+      background:#fff8e9;
+      border:1px solid #f0e2c2;
+      border-radius:13px;
+      color:#705625;
+      font-size:12px;
+      margin-top:16px;
+    }
+
+    footer {
+      text-align:center;
+      color:#82918a;
+      font-size:11px;
+      padding:25px 10px 0;
+    }
+
+    .progress {
+      height:6px;
+      background:#e9efea;
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:10px;
+      display:none;
+    }
+
+    .progress-bar {
+      height:100%;
+      width:0;
+      background:#4c9874;
+      transition:width .2s;
+    }
+
+    @media(max-width:780px) {
+      .shell {
+        width:min(100% - 24px,620px);
+        padding-top:12px;
+      }
+
+      .hero {
+        grid-template-columns:1fr;
+        padding:25px 23px;
+      }
+
+      .hero-art { display:none; }
+
+      .layout { grid-template-columns:1fr; }
+
+      .steps { gap:7px; }
+
+      .step {
+        padding:11px 9px;
+        font-size:11px;
+        align-items:flex-start;
+      }
+
+      .step b {
+        width:24px;
+        height:24px;
+        border-radius:8px;
+      }
+
+      .panel {
+        padding:18px;
+        border-radius:19px;
+      }
+    }
+
+    @media(max-width:430px) {
+      .shell { width:calc(100% - 20px); }
+
+      header { padding-bottom:17px; }
+
+      .top-pill {
+        font-size:10px;
+        padding:6px 8px;
+      }
+
+      .hero {
+        padding:23px 19px;
+        border-radius:23px;
+      }
+
+      h1 { font-size:34px; }
+
+      .hero p { font-size:13px; }
+
+      .steps {
+        grid-template-columns:1fr;
+        gap:7px;
+      }
+
+      .step {
+        align-items:center;
+        font-size:12px;
+      }
+
+      .panel { padding:16px; }
+
+      .panel-head { margin-bottom:12px; }
+
+      .camera-controls .btn,
+      .action-row .btn { flex:1; }
+
+      .detail-grid { grid-template-columns:1fr; }
+
+      .ingredient-top { align-items:flex-start; }
+
+      .risk { font-size:9px; }
+
+      .file-label { width:100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="shell">
+
+    <header>
+      <div class="brand">
+        <div class="brand-mark">✳</div>
+        <span>INCI LENS</span>
+      </div>
+      <div class="top-pill">INGREDIENT INTELLIGENCE</div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Know what goes on your skin</div>
+        <h1>Look closer.<br>Choose informed.</h1>
+        <p>
+          Scan an ingredient label, read the text and compare it
+          with your ingredient research database — all in one place.
+        </p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <span>✧</span>
+      </div>
+    </section>
+
+    <section class="steps" aria-label="How it works">
+      <div class="step"><b>1</b><span>Load your Excel research</span></div>
+      <div class="step"><b>2</b><span>Scan or upload a label</span></div>
+      <div class="step"><b>3</b><span>Review ingredient matches</span></div>
+    </section>
+
+    <section class="layout">
+
+      <div class="column">
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Your research library</h2>
+              <p class="panel-sub">Import your Excel workbook once per session.</p>
+            </div>
+            <span class="number">01 / DATA</span>
+          </div>
+
+          <div class="dropzone">
+            <div class="drop-icon">▤</div>
+            <strong>Upload ingredient database</strong>
+            <p class="panel-sub">Supports .xlsx and .xls files</p>
+            <label class="file-label" for="excelFile">Choose Excel workbook</label>
+            <input type="file" id="excelFile" accept=".xlsx,.xls">
+          </div>
+
+          <p id="excelStatus" class="status">No workbook loaded yet.</p>
+          <div id="sheetChips" class="sheet-chips"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Capture ingredient label</h2>
+              <p class="panel-sub">Use your phone's rear camera for a clearer label photo.</p>
+            </div>
+            <span class="number">02 / SCAN</span>
+          </div>
+
+          <div class="camera-frame">
+            <video id="video" playsinline autoplay muted hidden></video>
+            <div id="cameraPlaceholder" class="camera-placeholder">
+              <span>▧</span>
+              Your camera preview will appear here
+            </div>
+          </div>
+
+          <div class="camera-controls">
+            <button class="btn btn-primary" id="startCamera">Start camera</button>
+            <button class="btn btn-secondary" id="capture" disabled>Capture & read</button>
+            <button class="btn btn-quiet" id="stopCamera" disabled>Stop</button>
+          </div>
+
+          <p id="cameraStatus" class="status">Camera is off.</p>
+
+          <div class="progress" id="progress">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+
+          <div style="height:1px;background:var(--line);margin:17px 0"></div>
+
+          <p class="panel-sub" style="margin-bottom:8px">
+            Prefer to use an existing photo?
+          </p>
+
+          <label class="file-label" for="imageFile">↑ Upload label photo</label>
+          <input type="file" id="imageFile" accept="image/*" capture="environment">
+
+          <p class="status">
+            Tip: keep the label flat, well lit and in focus.
+            Avoid glare and curved edges.
+          </p>
+        </section>
+
+      </div>
+
+      <div class="column">
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Recognised ingredients</h2>
+              <p class="panel-sub">Check the text before comparing. OCR can misread small print.</p>
+            </div>
+            <span class="number">03 / REVIEW</span>
+          </div>
+
+          <textarea
+            id="ingredientText"
+            placeholder="Your scanned ingredient text will appear here. You can also type or paste an ingredient list…"
+          ></textarea>
+
+          <div class="action-row">
+            <button class="btn btn-primary" id="checkIngredients">Compare ingredients</button>
+            <button class="btn btn-quiet" id="clearText">Clear</button>
+          </div>
+
+          <p id="ocrStatus" class="status">Ready when you are.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Ingredient insights</h2>
+              <p class="panel-sub">Matches and supporting details from your workbook.</p>
+            </div>
+            <span class="number">04 / RESULTS</span>
+          </div>
+
+          <div id="results">
+            <div class="results-empty">
+              <span>✧</span>
+              Your ingredient results will appear here.<br>
+              Upload your workbook, then scan a label.
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <div class="notice">
+      <strong>Important:</strong>
+      This tool finds text matches in your workbook; it does not
+      independently determine whether a product is safe or unsafe.
+      OCR can make errors, and ingredients absent from the database
+      are not automatically safe. Review the original label and source information.
+    </div>
+
+    <footer>
+      INCI LENS · Research and information aid · Not a medical or regulatory assessment
+    </footer>
+
+  </main>
+
+<script>
+  let workbookSheets = {};
+  let ingredientRecords = [];
+  let sourceRows = [];
+  let cameraStream = null;
+  let ocrWorker = null;
+  let isReading = false;
+
+  const $ = id => document.getElementById(id);
+  const video = $('video');
+
+  function setStatus(element, message, kind='') {
+    element.textContent = message;
+    element.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function cellText(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+  }
+
+
+  // =====================================
+  // LOAD EVERY EXCEL WORKSHEET
+  // =====================================
+
+  $('excelFile').addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      if (typeof XLSX === 'undefined') {
+        throw new Error('Excel library did not load. Check your internet connection.');
+      }
+
+      setStatus($('excelStatus'), 'Reading every worksheet…');
+
+      const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+
+      workbookSheets = {};
+      ingredientRecords = [];
+      sourceRows = [];
+
+      wb.SheetNames.forEach(sheetName => {
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+
+        workbookSheets[sheetName] = rows;
+
+        if (sheetName.toLowerCase() === 'sources') {
+          sourceRows = rows;
+        }
+
+        rows.forEach(row => {
+          const ingredient = cellText(row['Ingredient']);
+          const substance = cellText(row['Substance']);
+          const primary = ingredient || substance;
+
+          if (!primary) return;
+
+          const synonymText = cellText(row['Other/Synonymous Names']);
+
+          ingredientRecords.push({
+            sheet:sheetName,
+            row,
+            primary,
+            synonyms:synonymText
+          });
+        });
+      });
+
+      const totalRows = Object.values(workbookSheets)
+        .reduce((sum, rows) => sum + rows.length, 0);
+
+      setStatus(
+        $('excelStatus'),
+        `Loaded ${wb.SheetNames.length} worksheets · ${totalRows} rows · ${ingredientRecords.length} ingredient-related records`,
+        'ok'
+      );
+
+      $('sheetChips').innerHTML = '';
+
+      wb.SheetNames.forEach(name => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = `${name} · ${workbookSheets[name].length}`;
+        $('sheetChips').appendChild(chip);
+      });
+
+      renderEmpty(
+        'Workbook ready. Scan an ingredient label to see matches from across all worksheets.'
+      );
+
+    } catch (error) {
+      workbookSheets = {};
+      ingredientRecords = [];
+
+      setStatus(
+        $('excelStatus'),
+        'Could not load workbook: ' + error.message,
+        'error'
+      );
+    }
+  });
+
+
+  // =====================================
+  // EMPTY RESULTS DISPLAY
+  // =====================================
+
+  function renderEmpty(message) {
+    $('results').innerHTML = '';
+
+    const box = document.createElement('div');
+    box.className = 'results-empty';
+
+    const icon = document.createElement('span');
+    icon.textContent = '✧';
+
+    box.append(icon, document.createTextNode(message));
+
+    $('results').appendChild(box);
+  }
+
+
+  // =====================================
+  // START CAMERA
+  // =====================================
+
+  async function startCamera() {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          'Camera access is not available. Open the site using HTTPS or localhost.'
+        );
+      }
+
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: {ideal:'environment'}
+        },
+        audio:false
+      });
+
+      video.srcObject = cameraStream;
+      video.hidden = false;
+      $('cameraPlaceholder').hidden = true;
+
+      await video.play();
+
+      $('capture').disabled = false;
+      $('stopCamera').disabled = false;
+      $('startCamera').disabled = true;
+
+      setStatus(
+        $('cameraStatus'),
+        'Camera is on. Frame the ingredient list and capture it.',
+        'ok'
+      );
+
+    } catch (error) {
+      setStatus(
+        $('cameraStatus'),
+        error.message + ' Check camera permission and use HTTPS or localhost.',
+        'error'
+      );
+    }
+  }
+
+
+  // =====================================
+  // STOP CAMERA
+  // =====================================
+
+  function stopCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+    }
+
+    cameraStream = null;
+    video.srcObject = null;
+    video.hidden = true;
+
+    $('cameraPlaceholder').hidden = false;
+    $('capture').disabled = true;
+    $('stopCamera').disabled = true;
+    $('startCamera').disabled = false;
+
+    setStatus($('cameraStatus'), 'Camera is off.');
+  }
+
+  $('startCamera').addEventListener('click', startCamera);
+  $('stopCamera').addEventListener('click', stopCamera);
+
+  window.addEventListener('pagehide', stopCamera);
+
+
+  // =====================================
+  // OCR TEXT RECOGNITION
+  // =====================================
+
+  async function runOCR(image) {
+    if (isReading) return;
+
+    isReading = true;
+    $('capture').disabled = true;
+    $('progress').style.display = 'block';
+    $('progressBar').style.width = '8%';
+
+    setStatus($('ocrStatus'), 'Preparing text recognition…');
+
+    try {
+      if (typeof Tesseract === 'undefined') {
+        throw new Error(
+          'OCR library did not load. Check your internet connection.'
+        );
+      }
+
+      if (!ocrWorker) {
+        ocrWorker = await Tesseract.createWorker('eng', 1, {
+          logger: message => {
+            if (message.status === 'recognizing text') {
+              $('progressBar').style.width =
+                Math.round(message.progress * 100) + '%';
+
+              setStatus(
+                $('ocrStatus'),
+                'Reading label text… ' +
+                Math.round(message.progress * 100) + '%'
+              );
+            }
+          }
+        });
+      }
+
+      const result = await ocrWorker.recognize(image);
+      const text = result.data.text.trim();
+
+      $('ingredientText').value = text;
+
+      setStatus(
+        $('ocrStatus'),
+        text
+          ? 'Text captured. Correct any mistakes, then compare.'
+          : 'No text found. Try a closer, sharper photo.',
+        text ? 'ok' : 'error'
+      );
+
+    } catch (error) {
+      setStatus(
+        $('ocrStatus'),
+        'Text recognition failed: ' + error.message,
+        'error'
+      );
+
+    } finally {
+      $('progressBar').style.width = '100%';
+
+      setTimeout(() => {
+        $('progress').style.display = 'none';
+        $('progressBar').style.width = '0%';
+      }, 700);
+
+      $('capture').disabled = !cameraStream;
+      isReading = false;
+    }
+  }
+
+
+  // =====================================
+  // CAPTURE CAMERA IMAGE
+  // =====================================
+
+  $('capture').addEventListener('click', () => {
+    if (!video.videoWidth) return;
+
+    const canvas = document.createElement('canvas');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    canvas.getContext('2d').drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    runOCR(canvas);
+  });
+
+
+  // =====================================
+  // UPLOAD PHOTO
+  // =====================================
+
+  $('imageFile').addEventListener('change', event => {
+    const file = event.target.files[0];
+
+    if (file) runOCR(file);
+
+    event.target.value = '';
+  });
+
+
+  // =====================================
+  // NORMALISE INGREDIENT TEXT
+  // =====================================
+
+  function normalise(value) {
+    return cellText(value)
+      .toLowerCase()
+      .replace(/[®™]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim()
+      .replace(/\s+/g,' ');
+  }
+
+
+  // =====================================
+  // SPLIT SYNONYMS
+  // =====================================
+
+  function splitSynonyms(value) {
+    return cellText(value)
+      .split(/[\n;|,]+/)
+      .map(normalise)
+      .filter(name => name.length >= 3);
+  }
+
+
+  // =====================================
+  // FIND MATCHES ACROSS ALL SHEETS
+  // =====================================
+
+  function findMatches(text) {
+    const haystack = ' ' + normalise(text) + ' ';
+
+    const found = [];
+    const seen = new Set();
+
+    ingredientRecords.forEach(record => {
+      const names = [
+        normalise(record.primary),
+        ...splitSynonyms(record.synonyms)
+      ]
+        .filter(Boolean)
+        .sort((a,b) => b.length-a.length);
+
+      const match = names.find(name =>
+        haystack.includes(' ' + name + ' ')
+      );
+
+      if (!match) return;
+
+      const key =
+        record.sheet + '|' + normalise(record.primary);
+
+      if (seen.has(key)) return;
+
+      seen.add(key);
+
+      found.push({
+        ...record,
+        matchedName:match
+      });
+    });
+
+    return found;
+  }
+
+
+  // =====================================
+  // RISK INFORMATION
+  // =====================================
+
+  function riskInfo(row, sheet) {
+    const rating =
+      cellText(row['Risk Rating']) ||
+      cellText(row['Potential Health Concern']) ||
+      cellText(row['Concentration Limit / Status']);
+
+    const lower = rating.toLowerCase();
+
+    if (
+      lower.includes('avoid') ||
+      lower.includes('high risk') ||
+      lower.includes('red')
+    ) {
+      return {
+        label:rating || 'Review',
+        cls:'risk-red'
+      };
+    }
+
+    if (
+      lower.includes('caution') ||
+      lower.includes('moderate') ||
+      lower.includes('amber')
+    ) {
+      return {
+        label:rating || 'Caution',
+        cls:'risk-amber'
+      };
+    }
+
+    if (
+      lower.includes('low concern') ||
+      lower === 'low' ||
+      lower.includes('yellow')
+    ) {
+      return {
+        label:rating || 'Low concern',
+        cls:'risk-green'
+      };
+    }
+
+    return {
+      label:rating || 'No rating in this sheet',
+      cls:'risk-neutral'
+    };
+  }
+
+
+  // =====================================
+  // ADD DETAIL FIELD
+  // =====================================
+
+  function addDetail(container, label, value) {
+    const text = cellText(value);
+
+    if (!text) return;
+
+    const div = document.createElement('div');
+    div.className = 'detail';
+
+    const b = document.createElement('b');
+    b.textContent = label;
+
+    const span = document.createElement('span');
+    span.textContent = text;
+
+    div.append(b, span);
+    container.appendChild(div);
+  }
+
+
+  // =====================================
+  // DISPLAY MATCHED INGREDIENTS
+  // =====================================
+
+  function renderMatches(matches) {
+    const root = $('results');
+
+    root.innerHTML = '';
+
+    const summary = document.createElement('div');
+    summary.className = 'result-summary';
+
+    const left = document.createElement('div');
+
+    const strong = document.createElement('strong');
+    strong.textContent = matches.length
+      ? 'Database matches found'
+      : 'No database matches found';
+
+    const small = document.createElement('small');
+    small.textContent =
+      'Results are grouped by matching workbook entry and source sheet.';
+
+    left.append(strong, small);
+
+    const count = document.createElement('div');
+    count.className = 'count';
+    count.textContent = matches.length;
+
+    summary.append(left, count);
+    root.appendChild(summary);
+
+
+    if (!matches.length) {
+      const p = document.createElement('p');
+
+      p.className = 'panel-sub';
+
+      p.textContent =
+        'No matching ingredient was found in the ingredient-related columns across the loaded worksheets. It may be missing from the workbook or misread by OCR.';
+
+      root.appendChild(p);
+      return;
+    }
+
+
+    matches.forEach(record => {
+      const row = record.row;
+
+      const card = document.createElement('article');
+      card.className = 'ingredient-card';
+
+      const top = document.createElement('div');
+      top.className = 'ingredient-top';
+
+      const titleWrap = document.createElement('div');
+
+      const title = document.createElement('h3');
+      title.textContent = record.primary;
+
+      const matched = document.createElement('div');
+      matched.className = 'matched';
+      matched.textContent =
+        `Matched: ${record.matchedName} · Sheet: ${record.sheet}`;
+
+      titleWrap.append(title, matched);
+
+      const risk = riskInfo(row, record.sheet);
+
+      const badge = document.createElement('span');
+      badge.className = 'risk ' + risk.cls;
+      badge.textContent = risk.label;
+
+      top.append(titleWrap, badge);
+      card.appendChild(top);
+
+
+      const grid = document.createElement('div');
+      grid.className = 'detail-grid';
+
+      const fields = [
+        ['Classification', row['Classification']],
+        ['Commonly found in', row['Commonly Found In'] || row['Commonly Found In (Skin, Body & Hair Care)']],
+        ['Rating driver', row['Rating Driver']],
+        ['Potential health concern', row['Potential Health Concern']],
+        ['Clean alternative', row['Clean Alternative']],
+        ['Concentration limit / status', row['Concentration Limit / Status']],
+        ['Singapore / ASEAN', row['SG / ASEAN']],
+        ['EU', row['EU']],
+        ['US', row['US']],
+        ['Korea', row['Korea']],
+        ['Regulatory notes', row['Regulatory Notes']],
+        ['Markets differ?', row['Markets differ?']],
+        ['Gap pattern', row['Gap pattern']],
+        ['Maximum concentration', row['Maximum concentration of substance allowed in finished product']],
+        ['Product types allowed', row['Type of product in which the substance is allowed']],
+        ['Limitations / requirements', row['Other limitations and requirements']],
+        ['Label warnings', row['Warnings and precautions for use to be shown on label of product']],
+        ['Evidence & sources', row['Evidence & Sources']],
+        ['Source standard', row['Source Standard']],
+        ['Other / synonymous names', row['Other/Synonymous Names']],
+        ['Reason for change', row['Reason']],
+        ['Change', row['Change']],
+        ['Stage', row['Stage']]
+      ];
+
+      fields.forEach(([label,value]) => {
+        addDetail(grid,label,value);
+      });
+
+      if (grid.children.length) {
+        card.appendChild(grid);
+      }
+
+
+      // EXPANDABLE COMPLETE WORKSHEET DATA
+
+      const more = document.createElement('details');
+      more.className = 'more';
+
+      const summaryEl = document.createElement('summary');
+      summaryEl.textContent = 'View all fields from this worksheet';
+
+      const allGrid = document.createElement('div');
+      allGrid.className = 'detail-grid';
+
+      Object.entries(row).forEach(([key,value]) => {
+        if (key && cellText(value)) {
+          addDetail(allGrid,key,value);
+        }
+      });
+
+      more.append(summaryEl, allGrid);
+      card.appendChild(more);
+
+      root.appendChild(card);
+    });
+
+
+    // RATING GUIDE FROM KEY WORKSHEET
+
+    const keyRows = (workbookSheets['Key'] || [])
+      .filter(row =>
+        Object.values(row).some(value => cellText(value))
+      );
+
+    if (keyRows.length) {
+      const guide = document.createElement('details');
+      guide.className = 'more';
+
+      const sum = document.createElement('summary');
+      sum.textContent =
+        'Open risk-rating guide from the Key worksheet';
+
+      const content = document.createElement('div');
+      content.className = 'sheet-info';
+
+      keyRows.forEach(row => {
+        Object.entries(row)
+          .filter(([k,v]) => k && cellText(v))
+          .forEach(([k,v]) => {
+            const p = document.createElement('p');
+            p.textContent = `${k}: ${v}`;
+            content.appendChild(p);
+          });
+      });
+
+      guide.append(sum,content);
+      root.appendChild(guide);
+    }
+
+
+    // SOURCE REGISTER FROM SOURCES WORKSHEET
+
+    const refs = (workbookSheets['Sources'] || [])
+      .filter(row =>
+        Object.values(row).some(value => cellText(value))
+      );
+
+    if (refs.length) {
+      const sourceDetails = document.createElement('details');
+      sourceDetails.className = 'more';
+
+      const sourceSummary = document.createElement('summary');
+      sourceSummary.textContent =
+        `View source register (${refs.length} entries) from Sources worksheet`;
+
+      const sourceContent = document.createElement('div');
+      sourceContent.className = 'sheet-info';
+
+      refs.forEach(row => {
+        const p = document.createElement('p');
+
+        p.textContent = [
+          row['Abbrev.'],
+          row['Source'],
+          row['Used for'],
+          row['Used by (S/NO)'],
+          row['Link']
+        ].filter(Boolean).join(' · ');
+
+        sourceContent.appendChild(p);
+      });
+
+      sourceDetails.append(sourceSummary, sourceContent);
+      root.appendChild(sourceDetails);
+    }
+  }
+
+
+  // =====================================
+  // COMPARE INGREDIENTS
+  // =====================================
+
+  $('checkIngredients').addEventListener('click', () => {
+    if (!Object.keys(workbookSheets).length) {
+      renderEmpty('Upload your Excel workbook first.');
+      return;
+    }
+
+    const text = $('ingredientText').value.trim();
+
+    if (!text) {
+      renderEmpty('Scan, upload or type an ingredient list first.');
+      return;
+    }
+
+    const matches = findMatches(text);
+
+    renderMatches(matches);
+  });
+
+
+  // =====================================
+  // CLEAR TEXT
+  // =====================================
+
+  $('clearText').addEventListener('click', () => {
+    $('ingredientText').value = '';
+
+    renderEmpty('Text cleared. Scan another label when ready.');
+
+    setStatus($('ocrStatus'), 'Ready when you are.');
+  });
+
+</script>
+
+</body>
+</html>
+
+
+
